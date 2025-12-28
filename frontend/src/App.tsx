@@ -60,7 +60,9 @@ function App() {
         setNotifications(prev => [...prev, notification]);
         
         // Refresh do calendário para mostrar nova OS
-        setRefreshTrigger(prev => prev + 1);
+        const newTrigger = Date.now();
+        console.log('🔄 Disparando refresh do calendário:', newTrigger);
+        setRefreshTrigger(newTrigger);
       };
 
       socketService.on('nova-ordem-servico', handleNovaOS);
@@ -107,18 +109,30 @@ function App() {
 
   const handleViewNotification = async (numeroOS: string) => {
     try {
+      console.log('🔍 Buscando OS:', numeroOS);
+      
       // Buscar a OS pelo número
       const response = await ordensServicoAPI.getByNumero(numeroOS);
+      console.log('📦 Resposta da API:', response.data);
+      
       if (response.data && response.data.length > 0) {
         // Pegar a versão mais recente (ativa)
         const os = response.data.find(os => os.ativa) || response.data[0];
-        setSelectedOS(os);
+        console.log('✅ OS encontrada:', os);
+        
+        // Buscar dados completos com atendimentos
+        const fullOS = await ordensServicoAPI.getById(os.id);
+        console.log('📋 OS completa:', fullOS.data);
+        
+        setSelectedOS(fullOS.data);
         
         // Remover a notificação
         setNotifications(prev => prev.filter(n => n.numeroOS !== numeroOS));
+      } else {
+        console.warn('⚠️ OS não encontrada:', numeroOS);
       }
     } catch (error) {
-      console.error('Erro ao buscar OS:', error);
+      console.error('❌ Erro ao buscar OS:', error);
     }
   };
 

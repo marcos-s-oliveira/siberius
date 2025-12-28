@@ -51,18 +51,23 @@ export default function WeeklyCalendar({ onSelectOS, refreshTrigger }: WeeklyCal
   };
 
   useEffect(() => {
+    console.log('🔄 WeeklyCalendar: useEffect triggered - refreshTrigger:', refreshTrigger);
     loadOrdensServico();
   }, [currentWeek, refreshTrigger]);
 
   const loadOrdensServico = async () => {
     try {
+      console.log('📥 Carregando ordens de serviço...');
       setLoading(true);
       setError(null);
       const response = await withMinDelay(
         ordensServicoAPI.getAll(),
         800 // 800ms mínimo para animações
       );
-      setOrdensServico(response.data.filter(os => os.ativa));
+      console.log('✅ Ordens carregadas:', response.data.length, 'total');
+      const ativos = response.data.filter(os => os.ativa);
+      console.log('✅ Ordens ativas:', ativos.length);
+      setOrdensServico(ativos);
     } catch (err: any) {
       console.error('Erro ao carregar ordens de serviço:', err);
       setError(err.userMessage || 'Erro ao carregar as ordens de serviço');
