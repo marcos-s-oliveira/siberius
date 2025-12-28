@@ -3,7 +3,8 @@ import WeeklyCalendar from './components/WeeklyCalendar';
 import OSModal from './components/OSModal';
 import ErrorScreen from './components/ErrorScreen';
 import LoadingScreen from './components/LoadingScreen';
-import { checkServerConnection } from './services/api';
+import Notification, { NotificationData } from './components/Notification';
+import { checkServerConnection, ordensServicoAPI } from './services/api';
 import { socketService } from './services/socket';
 import { ttsService } from './services/tts';
 import { withMinDelay } from './utils/delay';
@@ -23,6 +24,7 @@ function App() {
   const [appState, setAppState] = useState<AppState>('loading');
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
 
   useEffect(() => {
     checkConnection();
@@ -44,6 +46,18 @@ function App() {
         
         // Falar notificação
         ttsService.speak(data.message);
+        
+        // Adicionar notificação visual
+        const notification: NotificationData = {
+          id: `${data.numeroOS}-${Date.now()}`,
+          numeroOS: data.numeroOS,
+          data: new Date(data.data),
+          dataFormatted: data.dataFormatted,
+          cliente: data.cliente,
+          evento: data.evento,
+          message: data.message
+        };
+        setNotifications(prev => [...prev, notification]);
         
         // Refresh do calendário para mostrar nova OS
         setRefreshTrigger(prev => prev + 1);
@@ -91,6 +105,27 @@ function App() {
     setRefreshTrigger(prev => prev + 1); // Trigger refresh no calendário
   };
 
+  const handleViewNotification = async (numeroOS: string) => {
+    try {
+      // Buscar a OS pelo número
+      const response = await ordensServicoAPI.getByNumero(numeroOS);
+      if (response.data && response.data.length > 0) {
+        // Pegar a versão mais recente (ativa)
+        const os = response.data.find(os => os.ativa) || response.data[0];
+        setSelectedOS(os);
+        
+        // Remover a notificação
+        setNotifications(prev => prev.filter(n => n.numeroOS !== numeroOS));
+      }
+    } catch (error) {
+      console.error('Erro ao buscar OS:', error);
+    }
+  };
+
+  const handleDismissNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   if (appState === 'loading') {
     return <LoadingScreen message="Conectando ao servidor..." />;
   }
@@ -116,6 +151,20 @@ function App() {
           onClose={() => setSelectedOS(null)}
           onUpdate={handleOSUpdate}
         />
+      )}
+
+      {/* Notificações flutuantes */}
+      {notifications.length > 0 && (
+        <div className="notification-container">
+          {notifications.map(notification => (
+            <Notification
+              key={notification.id}
+              notification={notification}
+              onView={handleViewNotification}
+              onDismiss={handleDismissNotification}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
