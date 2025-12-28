@@ -10,7 +10,7 @@ dotenv.config();
 
 async function main() {
   logger.log('═══════════════════════════════════════════════════════');
-  logger.log('  🔍 Sistema de Indexação de PDFs - Siberius');
+  logger.log('  ��� Sistema de Indexação de PDFs - Siberius');
   logger.log('═══════════════════════════════════════════════════════\n');
 
   // Inicializar Prisma
@@ -33,12 +33,13 @@ async function main() {
     const config = configManager.getConfig();
 
     logger.log('⚙️  Configurações do indexador:');
-    logger.log(`   📁 Diretório: ${config.pdfDirectory}`);
+    logger.log(`   �� Diretório: ${config.pdfDirectory}`);
     logger.log(`   ⏱️  Intervalo: ${config.checkIntervalMinutes} minuto(s)`);
-    logger.log(`   📝 Logs detalhados: ${config.verboseLogging ? 'Sim' : 'Não'}\n`);
+    logger.log(`   ��� Logs detalhados: ${config.verboseLogging ? 'Sim' : 'Não'}\n`);
 
-    // Criar e iniciar o indexador
-    const indexer = new PDFIndexer(prisma, configManager);
+    // Criar e iniciar o indexador com socket manager
+    const socketManager = apiServer.getSocketManager();
+    const indexer = new PDFIndexer(prisma, configManager, socketManager);
     indexer.start();
 
     // Lidar com sinais de término
@@ -46,7 +47,7 @@ async function main() {
       logger.log(`\n\n⚠️  Sinal ${signal} recebido. Encerrando graciosamente...`);
       indexer.stop();
       await prisma.$disconnect();
-      logger.log('👋 Até logo!\n');
+      logger.log('��� Até logo!\n');
       process.exit(0);
     };
 

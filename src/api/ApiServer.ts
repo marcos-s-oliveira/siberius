@@ -1,15 +1,20 @@
 import express, { Application } from 'express';
+import { createServer, Server as HTTPServer } from 'http';
 import cors from 'cors';
 import routes from '../routes';
 import { logger } from '../utils/logger';
+import { SocketManager } from '../socket/SocketManager';
 
 export class ApiServer {
   private app: Application;
   private port: number;
+  private httpServer: HTTPServer;
+  private socketManager: SocketManager | null = null;
 
   constructor(port: number = 3000) {
     this.app = express();
     this.port = port;
+    this.httpServer = createServer(this.app);
     this.setupMiddlewares();
     this.setupRoutes();
   }
@@ -17,7 +22,7 @@ export class ApiServer {
   private setupMiddlewares(): void {
     // CORS
     this.app.use(cors());
-    
+
     // Body parser
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
@@ -28,14 +33,22 @@ export class ApiServer {
   }
 
   public start(): void {
-    this.app.listen(this.port, () => {
-      logger.log(`\nüöÄ Servidor API rodando em http://localhost:${this.port}`);
-      logger.log(`üìù Health check: http://localhost:${this.port}/health`);
-      logger.log(`üìö Endpoints dispon√≠veis em: http://localhost:${this.port}/api\n`);
+    // Inicializar Socket.IO
+    this.socketManager = new SocketManager(this.httpServer);
+    
+    this.httpServer.listen(this.port, () => {
+      logger.log(`\nÌ∫Ä Servidor API rodando em http://localhost:${this.port}`);
+      logger.log(`Ì¥å Socket.IO ativo e aguardando conex√µes`);
+      logger.log(`Ì≥ù Health check: http://localhost:${this.port}/health`);
+      logger.log(`Ì≥ö Endpoints dispon√≠veis em: http://localhost:${this.port}/api\n`);
     });
   }
 
   public getApp(): Application {
     return this.app;
+  }
+
+  public getSocketManager(): SocketManager | null {
+    return this.socketManager;
   }
 }

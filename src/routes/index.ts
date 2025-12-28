@@ -25,8 +25,8 @@ router.use('/api', atendimentoRoutes);
 
 // Rota de health check
 router.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'Siberius API'
   });

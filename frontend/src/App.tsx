@@ -4,6 +4,8 @@ import OSModal from './components/OSModal';
 import ErrorScreen from './components/ErrorScreen';
 import LoadingScreen from './components/LoadingScreen';
 import { checkServerConnection } from './services/api';
+import { socketService } from './services/socket';
+import { ttsService } from './services/tts';
 import { withMinDelay } from './utils/delay';
 import type { OrdemServico } from './types';
 import './App.css';
@@ -24,7 +26,37 @@ function App() {
 
   useEffect(() => {
     checkConnection();
+    
+    // Carregar vozes do TTS
+    ttsService.loadVoices().then(() => {
+      console.log('🔊 TTS inicializado');
+    });
   }, []);
+
+  useEffect(() => {
+    // Conectar ao Socket.IO quando o app estiver conectado
+    if (appState === 'connected') {
+      socketService.connect();
+
+      // Ouvir eventos de nova ordem de serviço
+      const handleNovaOS = (data: any) => {
+        console.log('📢 Nova OS recebida:', data);
+        
+        // Falar notificação
+        ttsService.speak(data.message);
+        
+        // Refresh do calendário para mostrar nova OS
+        setRefreshTrigger(prev => prev + 1);
+      };
+
+      socketService.on('nova-ordem-servico', handleNovaOS);
+
+      // Cleanup ao desmontar
+      return () => {
+        socketService.off('nova-ordem-servico', handleNovaOS);
+      };
+    }
+  }, [appState]);
 
   const checkConnection = async () => {
     setAppState('loading');

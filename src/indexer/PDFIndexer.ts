@@ -4,16 +4,19 @@ import * as path from 'path';
 import { PDFParser, ParsedPDFInfo } from '../parser/PDFParser';
 import { ConfigManager } from '../config/ConfigManager';
 import { logger } from '../utils/logger';
+import { SocketManager } from '../socket/SocketManager';
 
 export class PDFIndexer {
   private prisma: PrismaClient;
   private configManager: ConfigManager;
   private checkInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private socketManager: SocketManager | null;
 
-  constructor(prisma: PrismaClient, configManager: ConfigManager) {
+  constructor(prisma: PrismaClient, configManager: ConfigManager, socketManager: SocketManager | null = null) {
     this.prisma = prisma;
     this.configManager = configManager;
+    this.socketManager = socketManager;
   }
 
   /**
@@ -188,7 +191,7 @@ export class PDFIndexer {
     }
 
     // Salvar no banco de dados
-    await this.prisma.ordemServico.create({
+    const newOS = await this.prisma.ordemServico.create({
       data: {
         numeroOS: parsedInfo.numeroOS,
         versao: versao,
@@ -203,6 +206,16 @@ export class PDFIndexer {
         ativa: true,
       },
     });
+
+    // Notificar via Socket.IO sobre nova OS
+    if (this.socketManager) {
+      this.socketManager.notifyNewOrdemServico({
+        numeroOS: newOS.numeroOS,
+        data: newOS.data,
+        cliente: newOS.nomeCliente,
+        evento: newOS.nomeEvento
+      });
+    }
 
     if (config.verboseLogging) {
       logger.log(`✨ Novo arquivo indexado: ${file.filename} | OS: ${parsedInfo.numeroOS}`);
