@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  pin       String?  // PIN de 4-6 dígitos para tela touch
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("usuarios")
+}
+
+model Tecnico {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  email        String   @unique
+  telefone     String?
+  especialidade String?
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  atendimentos AtendimentoOS[]
+
+  @@map("tecnicos")
+}
+
+model OrdemServico {
+  id              Int      @id @default(autoincrement())
+  numeroOS        String
+  versao          Int      @default(1)
+  nomeCliente     String
+  nomeEvento      String
+  data            DateTime
+  osAtualizada    Boolean  @default(false)
+  caminhoArquivo  String   @unique
+  caminhoRelativo String?
+  nomeArquivo     String
+  osOriginalId    Int?     // Referência para a OS original (se for atualização)
+  ativa           Boolean  @default(true) // Indica se é a versão ativa
+  indexadoEm      DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  osOriginal      OrdemServico?  @relation("OSVersoes", fields: [osOriginalId], references: [id], onDelete: SetNull)
+  versoes         OrdemServico[] @relation("OSVersoes")
+  atendimentos    AtendimentoOS[]
+
+  @@unique([numeroOS, versao])
+  @@index([numeroOS, ativa])
+  @@map("ordens_servico")
+}
+
+model AtendimentoOS {
+  id              Int      @id @default(autoincrement())
+  ordemServicoId  Int
+  tecnicoId       Int
+  dataAtribuicao  DateTime @default(now())
+  status          String   @default("pendente") // pendente, em_andamento, concluido
+  observacoes     String?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  tecnico      Tecnico      @relation(fields: [tecnicoId], references: [id])
+
+  @@map("atendimentos_os")
+}
