@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siberius - Instalador</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #e0e0e0;
+            margin-bottom: 40px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #4caf50;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: white;
+        }
+
+        .config-preview {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .config-preview pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .step-indicator {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: #e8eaf6;
+        }
+
+        .file-input-label::before {
+            content: "📁";
+            margin-right: 10px;
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Siberius</h1>
+            <p>Instalador Visual</p>
+        </div>
+
+        <div class="content">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress" style="width: 0%"></div>
+            </div>
+
+            <!-- Step 1: Bem-vindo -->
+            <div class="step active" id="step1">
+                <div class="step-indicator">Passo 1 de 4</div>
+                <h2>👋 Bem-vindo ao Siberius!</h2>
+                <p style="margin: 20px 0; line-height: 1.6; color: #666;">
+                    Este instalador irá guiá-lo através da configuração do sistema Siberius.
+                    Você irá configurar:
+                </p>
+                <ul style="margin: 20px 0; line-height: 2; color: #666;">
+                    <li>✅ Conexão com o banco de dados PostgreSQL</li>
+                    <li>✅ Diretório dos arquivos PDF</li>
+                    <li>✅ Configurações de segurança</li>
+                    <li>✅ URLs do frontend e backend</li>
+                </ul>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="nextStep()">Começar →</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Banco de Dados -->
+            <div class="step" id="step2">
+                <div class="step-indicator">Passo 2 de 4</div>
+                <h2>🗄️ Configuração do Banco de Dados</h2>
+                <p style="margin-bottom: 20px; color: #666;">Configure a conexão com o PostgreSQL:</p>
+
+                <div class="form-group">
+                    <label>Host do Banco de Dados</label>
+                    <input type="text" id="db_host" value="localhost" placeholder="localhost ou IP do servidor">
+                    <div class="input-hint">Ex: localhost, 192.168.1.100</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Porta</label>
+                    <input type="text" id="db_port" value="5432" placeholder="5432">
+                </div>
+
+                <div class="form-group">
+                    <label>Nome do Banco</label>
+                    <input type="text" id="db_name" value="siberius" placeholder="siberius">
+                </div>
+
+                <div class="form-group">
+                    <label>Usuário</label>
+                    <input type="text" id="db_user" value="postgres" placeholder="postgres">
+                </div>
+
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="db_password" placeholder="Senha do banco">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="prevStep()">← Voltar</button>
+                    <button class="btn-primary" onclick="nextStep()">Próximo →</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Configurações -->
+            <div class="step" id="step3">
+                <div class="step-indicator">Passo 3 de 4</div>
+                <h2>⚙️ Configurações do Sistema</h2>
+
+                <div class="form-group">
+                    <label>Diretório dos PDFs</label>
+                    <input type="text" id="pdf_directory" value="C:\ServiceOrder" placeholder="C:\ServiceOrder">
+                    <div class="input-hint">Caminho onde os PDFs serão escaneados</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Intervalo de Scan (minutos)</label>
+                    <input type="number" id="scan_interval" value="10" min="1" max="60">
+                    <div class="input-hint">Com que frequência verificar novos PDFs</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Porta do Backend</label>
+                    <input type="number" id="backend_port" value="3000" min="1000" max="9999">
+                </div>
+
+                <div class="form-group">
+                    <label>IP/Domínio do Servidor</label>
+                    <input type="text" id="server_ip" value="localhost" placeholder="192.168.1.100">
+                    <div class="input-hint">IP ou domínio onde o backend está rodando</div>
+                </div>
+
+                <div class="form-group">
+                    <label>JWT Secret</label>
+                    <input type="text" id="jwt_secret" placeholder="Deixe vazio para gerar automaticamente">
+                    <div class="input-hint">Chave secreta para tokens (será gerada se vazio)</div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="prevStep()">← Voltar</button>
+                    <button class="btn-primary" onclick="nextStep()">Próximo →</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Revisão -->
+            <div class="step" id="step4">
+                <div class="step-indicator">Passo 4 de 4</div>
+                <h2>📋 Revisão das Configurações</h2>
+                <p style="margin-bottom: 20px; color: #666;">Verifique as configurações antes de gerar os arquivos:</p>
+
+                <div class="config-preview">
+                    <pre id="preview"></pre>
+                </div>
+
+                <div class="warning">
+                    <strong>⚠️ Atenção:</strong> Os arquivos .env e config.js serão gerados.
+                    Faça backup dos arquivos existentes se necessário.
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="prevStep()">← Voltar</button>
+                    <button class="btn-primary" onclick="generateConfig()">✅ Gerar Arquivos</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Sucesso -->
+            <div class="step" id="step5">
+                <div style="text-align: center;">
+                    <div class="success-icon">✓</div>
+                    <h2>🎉 Configuração Concluída!</h2>
+                    <p style="margin: 20px 0; color: #666;">
+                        Os arquivos de configuração foram gerados com sucesso.
+                    </p>
+
+                    <div class="config-preview" style="text-align: left;">
+                        <strong>Arquivos gerados:</strong>
+                        <ul style="margin-top: 10px; line-height: 2;">
+                            <li>📄 backend/.env</li>
+                            <li>📄 frontend/dist/config.js</li>
+                        </ul>
+                    </div>
+
+                    <div class="warning">
+                        <strong>Próximos passos:</strong>
+                        <ol style="margin: 10px 0 0 20px; line-height: 2;">
+                            <li>Copie os arquivos gerados para as pastas corretas</li>
+                            <li>Execute: <code>npm run build</code> em backend e frontend</li>
+                            <li>Inicie os serviços com PM2 ou manualmente</li>
+                        </ol>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="downloadFiles()">📥 Baixar Arquivos</button>
+                        <button class="btn-secondary" onclick="location.reload()">🔄 Nova Configuração</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 5;
+
+        function updateProgress() {
+            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+        }
+
+        function nextStep() {
+            if (currentStep === 4) {
+                showPreview();
+            }
+            
+            document.getElementById('step' + currentStep).classList.remove('active');
+            currentStep++;
+            document.getElementById('step' + currentStep).classList.add('active');
+            updateProgress();
+            window.scrollTo(0, 0);
+        }
+
+        function prevStep() {
+            document.getElementById('step' + currentStep).classList.remove('active');
+            currentStep--;
+            document.getElementById('step' + currentStep).classList.add('active');
+            updateProgress();
+            window.scrollTo(0, 0);
+        }
+
+        function generateJWT() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let result = '';
+            for (let i = 0; i < 64; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function showPreview() {
+            const config = getConfig();
+            const preview = `
+BACKEND (.env):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATABASE_URL="${config.database_url}"
+API_PORT=${config.backend_port}
+JWT_SECRET="${config.jwt_secret}"
+PDF_DIRECTORY="${config.pdf_directory}"
+CHECK_INTERVAL_MINUTES=${config.scan_interval}
+NODE_ENV=production
+
+FRONTEND (dist/config.js):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+API_URL: 'http://${config.server_ip}:${config.backend_port}'
+API_TIMEOUT: 10000
+            `.trim();
+
+            document.getElementById('preview').textContent = preview;
+        }
+
+        function getConfig() {
+            const db_host = document.getElementById('db_host').value;
+            const db_port = document.getElementById('db_port').value;
+            const db_name = document.getElementById('db_name').value;
+            const db_user = document.getElementById('db_user').value;
+            const db_password = document.getElementById('db_password').value;
+            const jwt_secret = document.getElementById('jwt_secret').value || generateJWT();
+
+            return {
+                database_url: `postgresql://${db_user}:${db_password}@${db_host}:${db_port}/${db_name}?schema=public`,
+                backend_port: document.getElementById('backend_port').value,
+                jwt_secret: jwt_secret,
+                pdf_directory: document.getElementById('pdf_directory').value,
+                scan_interval: document.getElementById('scan_interval').value,
+                server_ip: document.getElementById('server_ip').value
+            };
+        }
+
+        function generateConfig() {
+            const config = getConfig();
+
+            // Gerar .env do backend
+            const envContent = `# Siberius Backend Configuration
+# Gerado automaticamente pelo instalador
+
+# ==== SERVIDOR ====
+API_PORT=${config.backend_port}
+NODE_ENV=production
+
+# ==== BANCO DE DADOS ====
+DATABASE_URL="${config.database_url}"
+
+# ==== SEGURANÇA ====
+JWT_SECRET="${config.jwt_secret}"
+JWT_EXPIRES_IN=12h
+
+# ==== INDEXADOR DE PDFs ====
+PDF_DIRECTORY="${config.pdf_directory}"
+CHECK_INTERVAL_MINUTES=${config.scan_interval}
+VERBOSE_LOGGING=true
+`;
+
+            // Gerar config.js do frontend
+            const configJsContent = `// Siberius Frontend Configuration
+// Gerado automaticamente pelo instalador
+
+window.SIBERIUS_CONFIG = {
+  API_URL: 'http://${config.server_ip}:${config.backend_port}',
+  API_TIMEOUT: 10000,
+  DEBUG: false
+};
+`;
+
+            // Salvar no localStorage para download posterior
+            localStorage.setItem('env_file', envContent);
+            localStorage.setItem('config_js_file', configJsContent);
+
+            nextStep();
+        }
+
+        function downloadFiles() {
+            // Download .env
+            const envBlob = new Blob([localStorage.getItem('env_file')], { type: 'text/plain' });
+            const envUrl = URL.createObjectURL(envBlob);
+            const envLink = document.createElement('a');
+            envLink.href = envUrl;
+            envLink.download = '.env';
+            envLink.click();
+
+            // Download config.js
+            setTimeout(() => {
+                const configBlob = new Blob([localStorage.getItem('config_js_file')], { type: 'text/javascript' });
+                const configUrl = URL.createObjectURL(configBlob);
+                const configLink = document.createElement('a');
+                configLink.href = configUrl;
+                configLink.download = 'config.js';
+                configLink.click();
+            }, 500);
+
+            alert('Arquivos baixados!\n\nCopie:\n- .env para /backend/\n- config.js para /frontend/dist/');
+        }
+
+        updateProgress();
+    </script>
+</body>
+</html>

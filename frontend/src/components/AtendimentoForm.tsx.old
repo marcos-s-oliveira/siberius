@@ -1,0 +1,152 @@
+import { useState } from 'react';
+import { atendimentosAPI } from '../services/api';
+import type { Atendimento, OrdemServico, Tecnico } from '../types';
+import { parseEspecialidades } from '../utils/especialidades';
+import './Form.css';
+
+interface AtendimentoFormProps {
+  atendimento: Atendimento | null;
+  ordens: OrdemServico[];
+  tecnicos: Tecnico[];
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+function AtendimentoForm({ atendimento, ordens, tecnicos, onSave, onCancel }: AtendimentoFormProps) {
+  const [formData, setFormData] = useState({
+    ordemServicoId: atendimento?.ordemServicoId || 0,
+    tecnicoId: atendimento?.tecnicoId || 0,
+    status: atendimento?.status || 'pendente',
+    observacoes: atendimento?.observacoes || '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'ordemServicoId' || name === 'tecnicoId' ? Number(value) : value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.ordemServicoId || !formData.tecnicoId) {
+      setError('Selecione uma ordem de serviço e um técnico');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (atendimento) {
+        await atendimentosAPI.update(atendimento.id, formData);
+      } else {
+        await atendimentosAPI.create(formData);
+      }
+      onSave();
+    } catch (err: any) {
+      setError(err.userMessage || 'Erro ao salvar atendimento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="form-container">
+      <div className="form-header">
+        <h2>{atendimento ? 'Editar' : 'Novo'} Atendimento</h2>
+      </div>
+
+      <form onSubmit={handleSubmit} className="form-content">
+        {error && <div className="form-error">{error}</div>}
+
+        <div className="form-group">
+          <label htmlFor="ordemServicoId">Ordem de Serviço *</label>
+          <select
+            id="ordemServicoId"
+            name="ordemServicoId"
+            value={formData.ordemServicoId}
+            onChange={handleChange}
+            required
+          >
+            <option value={0}>Selecione uma OS</option>
+            {ordens
+              .filter(os => os.ativa)
+              .map(os => (
+                <option key={os.id} value={os.id}>
+                  {os.numeroOS} - {os.nomeCliente} - {os.nomeEvento}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="tecnicoId">Técnico *</label>
+          <select
+            id="tecnicoId"
+            name="tecnicoId"
+            value={formData.tecnicoId}
+            onChange={handleChange}
+            required
+          >
+            <option value={0}>Selecione um técnico</option>
+            {tecnicos
+              .filter(tec => tec.ativo)
+              .map(tec => {
+                const especialidades = parseEspecialidades(tec.especialidade);
+                const especialidadesStr = especialidades.length > 0 ? ` - ${especialidades.join(', ')}` : '';
+                return (
+                  <option key={tec.id} value={tec.id}>
+                    {tec.nome}{especialidadesStr}
+                  </option>
+                );
+              })}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="status">Status *</label>
+          <select
+            id="status"
+            name="status"
+            value={formData.status}
+            onChange={handleChange}
+            required
+          >
+            <option value="pendente">Pendente</option>
+            <option value="em_andamento">Em Andamento</option>
+            <option value="concluido">Concluído</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="observacoes">Observações</label>
+          <textarea
+            id="observacoes"
+            name="observacoes"
+            value={formData.observacoes}
+            onChange={handleChange}
+            rows={4}
+            placeholder="Detalhes sobre o atendimento..."
+          />
+        </div>
+
+        <div className="form-actions">
+          <button type="button" onClick={onCancel} className="btn-secondary">
+            Cancelar
+          </button>
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default AtendimentoForm;

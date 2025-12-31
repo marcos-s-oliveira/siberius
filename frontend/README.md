@@ -39,7 +39,25 @@ npm install
 
 ## ⚙️ Configuração
 
-### Variáveis de Ambiente
+### Método 1: Configuração Dinâmica (Recomendado) 🌟
+
+**Edite após o build sem recompilar!**
+
+Após fazer `npm run build`, edite `dist/config.js`:
+
+```javascript
+window.SIBERIUS_CONFIG = {
+  API_URL: 'http://192.168.1.100:3000',  // IP do servidor backend
+  API_TIMEOUT: 10000,
+  DEBUG: false
+};
+```
+
+✅ **Vantagens**: Configuração flexível, sem rebuild, ideal para produção
+
+📚 **Guia completo**: Veja [README_CONFIG.md](README_CONFIG.md)
+
+### Método 2: Variáveis de Ambiente
 
 Crie um arquivo `.env` na raiz do projeto frontend:
 

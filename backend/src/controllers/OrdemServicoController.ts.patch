@@ -1,0 +1,31 @@
+--- a/src/controllers/OrdemServicoController.ts
++++ b/src/controllers/OrdemServicoController.ts
+@@ -51,17 +51,19 @@ export class OrdemServicoController {
+   static async getByNumero(req: Request, res: Response) {
+     try {
+       const { numero } = req.params;
+-      const ordemServico = await prisma.ordemServico.findUnique({
+-        where: { numeroOS: numero },
++      const ordensServico = await prisma.ordemServico.findMany({
++        where: { numeroOS: numero },
+         include: {
+           atendimentos: {
+             include: {
+               tecnico: true
+             }
+           }
+-        }
++        },
++        orderBy: { versao: 'desc' }
+       });
+ 
+-      if (!ordemServico) {
++      if (!ordensServico || ordensServico.length === 0) {
+         return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
+       }
+ 
+-      res.json(ordemServico);
++      res.json(ordensServico);
+     } catch (error) {
+       res.status(500).json({ error: 'Erro ao buscar ordem de serviço', details: error });
+     }

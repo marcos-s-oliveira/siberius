@@ -10,7 +10,7 @@ export interface OrdemServico {
   caminhoRelativo?: string;
   nomeArquivo: string;
   ativa: boolean;
-  atendimentos?: Atendimento[];
+  atendimento?: Atendimento;
 }
 
 export interface Tecnico {
@@ -24,14 +24,26 @@ export interface Tecnico {
   atualizadoEm?: string;
 }
 
+export interface TecnicoAtendimento {
+  id: number;
+  atendimentoId: number;
+  tecnicoId: number;
+  funcao?: string;
+  criadoEm?: string;
+  atualizadoEm?: string;
+  tecnico?: Tecnico;
+}
+
 export interface Atendimento {
   id: number;
   ordemServicoId: number;
-  tecnicoId: number;
-  status: 'pendente' | 'em_andamento' | 'concluido' | 'cancelado';
+  dataAgendamento: string;
+  status: 'nao_agendado' | 'agendado' | 'em_andamento' | 'concluido' | 'cancelado';
   observacoes?: string;
-  tecnico?: Tecnico;
+  criadoEm?: string;
+  atualizadoEm?: string;
   ordemServico?: OrdemServico;
+  tecnicos?: TecnicoAtendimento[];
 }
 
 export interface Usuario {
@@ -45,5 +57,6 @@ export interface Usuario {
 export interface AuthResponse {
   token: string;
   usuario: Usuario;
+  authType: 'full' | 'pin';
   expiresIn: string;
 }

@@ -672,6 +672,21 @@
 .tech-specialty {
   font-size: 14px;
   color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.especialidade-badge-inline {
+  display: inline-block;
+  padding: 3px 8px;
+  background: rgba(102, 126, 234, 0.15);
+  color: #667eea;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .current-team {
@@ -827,4 +842,89 @@
     min-width: 48px;
     min-height: 48px;
   }
+}
+
+/* Conflict Warning Banner */
+.conflict-warning {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+  border: 2px solid #ffc107;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  animation: slideDown 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.conflict-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #856404;
+}
+
+.warning-icon {
+  font-size: 20px;
+}
+
+.conflict-header strong {
+  flex: 1;
+  font-size: 15px;
+}
+
+.close-warning {
+  background: transparent;
+  border: none;
+  color: #856404;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.close-warning:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.conflict-message {
+  color: #856404;
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.conflict-list {
+  margin: 10px 0;
+  padding-left: 20px;
+  color: #856404;
+}
+
+.conflict-list li {
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+.conflict-list strong {
+  color: #664d03;
+}
+
+.conflict-note {
+  margin: 12px 0 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 193, 7, 0.3);
+  font-size: 13px;
+  color: #664d03;
+  font-style: italic;
 }

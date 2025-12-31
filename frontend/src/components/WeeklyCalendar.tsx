@@ -10,13 +10,47 @@ const DAYS_OF_WEEK = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 interface WeeklyCalendarProps {
   onSelectOS?: (os: OrdemServico) => void;
   refreshTrigger?: number;
+  onRegisterAddOS?: (addOSFunc: (numeroOS: string) => Promise<void>) => void;
 }
 
-export default function WeeklyCalendar({ onSelectOS, refreshTrigger }: WeeklyCalendarProps) {
+export default function WeeklyCalendar({ onSelectOS, refreshTrigger, onRegisterAddOS }: WeeklyCalendarProps) {
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [ordensServico, setOrdensServico] = useState<OrdemServico[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Função para adicionar nova OS sem reload completo
+  const addNewOS = async (numeroOS: string) => {
+    try {
+      console.log('➕ Adicionando nova OS ao calendário:', numeroOS);
+      const response = await ordensServicoAPI.getByNumero(numeroOS);
+      
+      if (response.data && response.data.length > 0) {
+        // Pegar a versão ativa
+        const novaOS = response.data.find(os => os.ativa) || response.data[0];
+        
+        // Verificar se já existe no estado (evitar duplicatas)
+        setOrdensServico(prev => {
+          const exists = prev.some(os => os.id === novaOS.id);
+          if (exists) {
+            console.log('⚠️ OS já existe no calendário, atualizando:', numeroOS);
+            return prev.map(os => os.id === novaOS.id ? novaOS : os);
+          }
+          console.log('✅ Nova OS adicionada ao calendário:', numeroOS);
+          return [...prev, novaOS];
+        });
+      }
+    } catch (error) {
+      console.error('❌ Erro ao adicionar OS ao calendário:', error);
+    }
+  };
+
+  // Registrar função de adicionar OS com o componente pai
+  useEffect(() => {
+    if (onRegisterAddOS) {
+      onRegisterAddOS(addNewOS);
+    }
+  }, [onRegisterAddOS]);
 
   const getWeekDates = (date: Date): Date[] => {
     const week: Date[] = [];
@@ -67,6 +101,25 @@ export default function WeeklyCalendar({ onSelectOS, refreshTrigger }: WeeklyCal
       console.log('✅ Ordens carregadas:', response.data.length, 'total');
       const ativos = response.data.filter(os => os.ativa);
       console.log('✅ Ordens ativas:', ativos.length);
+      
+      // Log detalhado de cada OS com data
+      console.log('📋 Detalhes das OSs ativas:');
+      ativos.forEach(os => {
+        const osDate = new Date(os.data);
+        console.log(`  OS #${os.numeroOS} v${os.versao} - Data: ${osDate.toLocaleDateString('pt-BR')} ${osDate.toLocaleTimeString('pt-BR')} - Cliente: ${os.nomeCliente}`);
+      });
+      
+      // Agrupar por data para ver quantas há em cada dia
+      const porData = ativos.reduce((acc, os) => {
+        const osDate = new Date(os.data);
+        osDate.setHours(0, 0, 0, 0);
+        const dateKey = osDate.toLocaleDateString('pt-BR');
+        if (!acc[dateKey]) acc[dateKey] = [];
+        acc[dateKey].push(os.numeroOS);
+        return acc;
+      }, {} as Record<string, string[]>);
+      console.log('📊 OSs agrupadas por data:', porData);
+      
       setOrdensServico(ativos);
     } catch (err: any) {
       console.error('Erro ao carregar ordens de serviço:', err);
@@ -77,11 +130,17 @@ export default function WeeklyCalendar({ onSelectOS, refreshTrigger }: WeeklyCal
   };
 
   const getOSForDate = (date: Date): OrdemServico[] => {
-    return ordensServico.filter(os => {
+    const filtered = ordensServico.filter(os => {
       const osDate = new Date(os.data);
       osDate.setHours(0, 0, 0, 0);
-      return osDate.getTime() === date.getTime();
+      const matches = osDate.getTime() === date.getTime();
+      if (matches) {
+        console.log(`📅 OS #${os.numeroOS} (v${os.versao}) matched for ${formatDate(date)}:`, os);
+      }
+      return matches;
     });
+    console.log(`📊 Total OSs for ${formatDate(date)}:`, filtered.length, filtered.map(os => `#${os.numeroOS}v${os.versao}`));
+    return filtered;
   };
 
   const formatDate = (date: Date): string => {
@@ -106,14 +165,23 @@ export default function WeeklyCalendar({ onSelectOS, refreshTrigger }: WeeklyCal
   };
 
   const getStatusColor = (os: OrdemServico): string => {
-    if (!os.atendimentos || os.atendimentos.length === 0) return '#ff9800';
+    const osDate = new Date(os.data);
+    osDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    const hasCompleted = os.atendimentos.some(a => a.status === 'concluido');
-    const hasInProgress = os.atendimentos.some(a => a.status === 'em_andamento');
+    // Sem equipe escalada
+    if (!os.atendimento) {
+      // Vermelho: data passada ou hoje
+      if (osDate.getTime() <= today.getTime()) {
+        return '#f44336'; // vermelho
+      }
+      // Laranja: data futura
+      return '#ff9800'; // laranja
+    }
     
-    if (hasCompleted) return '#4caf50';
-    if (hasInProgress) return '#2196f3';
-    return '#ff9800';
+    // Verde: com equipe escalada
+    return '#4caf50'; // verde
   };
 
   return (
@@ -150,6 +218,7 @@ export default function WeeklyCalendar({ onSelectOS, refreshTrigger }: WeeklyCal
           {weekDates.map((date, index) => {
             const osForDay = getOSForDate(date);
             const today = isToday(date);
+            console.log(`🎨 Renderizando ${formatDate(date)}: ${osForDay.length} OSs`, osForDay.map(os => `#${os.numeroOS}(id:${os.id})`));
             
             return (
               <div key={index} className={`day-column ${today ? 'today' : ''}`}>
@@ -162,23 +231,29 @@ export default function WeeklyCalendar({ onSelectOS, refreshTrigger }: WeeklyCal
                   {osForDay.length === 0 ? (
                     <div className="no-os">Sem agendamentos</div>
                   ) : (
-                    osForDay.map(os => (
-                      <div
-                        key={os.id}
-                        className="os-card"
-                        style={{ borderLeftColor: getStatusColor(os) }}
-                        onClick={() => onSelectOS?.(os)}
-                      >
-                        <div className="os-number">OS #{os.numeroOS}</div>
-                        <div className="os-client">{os.nomeCliente}</div>
-                        <div className="os-event">{os.nomeEvento}</div>
-                        {os.atendimentos && os.atendimentos.length > 0 && (
-                          <div className="os-team">
-                            👥 {os.atendimentos.length} técnico(s)
+                    <>
+                      {console.log(`🔧 Mapeando ${osForDay.length} OSs para ${formatDate(date)}`)}
+                      {osForDay.map((os, osIndex) => {
+                        console.log(`  ↳ Renderizando OS #${os.numeroOS} (id:${os.id}, index:${osIndex})`);
+                        return (
+                          <div
+                            key={os.id}
+                            className="os-card"
+                            style={{ borderLeftColor: getStatusColor(os) }}
+                            onClick={() => onSelectOS?.(os)}
+                          >
+                            <div className="os-number">OS #{os.numeroOS}</div>
+                            <div className="os-client">{os.nomeCliente}</div>
+                            <div className="os-event">{os.nomeEvento}</div>
+                            {os.atendimento && os.atendimento.tecnicos && os.atendimento.tecnicos.length > 0 && (
+                              <div className="os-team">
+                                👥 {os.atendimento.tecnicos.length} técnico(s)
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))
+                        );
+                      })}
+                    </>
                   )}
                 </div>
               </div>

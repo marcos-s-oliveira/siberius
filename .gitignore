@@ -1,30 +1,71 @@
-# Dependencies
+# Dependências
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
 
-# Environment variables
-.env
-
-# Build outputs
+# Production builds
 dist/
 build/
 
-# IDE
+# Environment files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
+*.sublime*
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Logs
 logs/
 *.log
+npm-debug.log*
 
-# Prisma
-prisma/.env
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temp
+tmp/
+temp/
+*.tmp
+.cache/
+
+# Test PDFs (não commitar PDFs de exemplo grandes)
+test-pdfs/*.pdf
+backend/pdfs/
+
+# Prisma (apenas migration SQL)
+backend/prisma/migrations/*/migration.sql
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Builds intermediários
+.next/
+out/
+.cache
+
+# PM2
+.pm2/
+pm2.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Instalação
+INSTALACAO.txt
+siberius/

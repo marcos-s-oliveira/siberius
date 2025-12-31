@@ -1,11 +1,26 @@
 import axios from 'axios';
-import type { OrdemServico, Atendimento, AuthResponse, Tecnico } from '../types';
+import type { OrdemServico, Atendimento, AuthResponse, Tecnico, Usuario } from '../types';
 
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3000';
+// Usar config.js se disponível, senão fallback para env vars e localhost
+const getApiUrl = () => {
+  if (typeof window !== 'undefined' && window.SIBERIUS_CONFIG) {
+    return window.SIBERIUS_CONFIG.API_URL;
+  }
+  return (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3000';
+};
+
+const getApiTimeout = () => {
+  if (typeof window !== 'undefined' && window.SIBERIUS_CONFIG) {
+    return window.SIBERIUS_CONFIG.API_TIMEOUT || 10000;
+  }
+  return 10000;
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000, // 10 segundos
+  timeout: getApiTimeout(),
 });
 
 // Interceptor para adicionar token
@@ -64,22 +79,55 @@ export const ordensServicoAPI = {
 
 export const atendimentosAPI = {
   getAll: () => api.get<Atendimento[]>('/api/atendimentos'),
-  getByOrdemServico: (osId: number) => api.get<Atendimento[]>(`/api/atendimentos/ordem-servico/${osId}`),
-  getByTecnico: (tecnicoId: number) => api.get<Atendimento[]>(`/api/atendimentos/tecnico/${tecnicoId}`),
+  getById: (id: number) => api.get<Atendimento>(`/api/atendimentos/${id}`),
+  getByOS: (osId: number) => api.get<Atendimento>(`/api/atendimentos/os/${osId}`),
   create: (data: Partial<Atendimento>) => api.post<Atendimento>('/api/atendimentos', data),
   update: (id: number, data: Partial<Atendimento>) => api.put<Atendimento>(`/api/atendimentos/${id}`, data),
+  updateStatus: (id: number, status: string) => api.patch<Atendimento>(`/api/atendimentos/${id}/status`, { status }),
+  addTecnico: (id: number, tecnicoId: number, funcao?: string) => api.post<Atendimento>(`/api/atendimentos/${id}/tecnicos`, { tecnicoId, funcao }),
+  removeTecnico: (id: number, tecnicoId: number) => api.delete<Atendimento>(`/api/atendimentos/${id}/tecnicos/${tecnicoId}`),
   delete: (id: number) => api.delete(`/api/atendimentos/${id}`),
+  stats: (startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/api/atendimentos/stats?${params.toString()}`);
+  }
 };
 
 export const tecnicosAPI = {
   getAll: () => api.get<Tecnico[]>('/api/tecnicos'),
   getById: (id: number) => api.get<Tecnico>(`/api/tecnicos/${id}`),
+  create: (data: Partial<Tecnico>) => api.post<Tecnico>('/api/tecnicos', data),
+  update: (id: number, data: Partial<Tecnico>) => api.put<Tecnico>(`/api/tecnicos/${id}`, data),
+  delete: (id: number) => api.delete(`/api/tecnicos/${id}`),
 };
 
 export const authAPI = {
   loginPin: (usuarioId: number, pin: string) => 
     api.post<AuthResponse>('/auth/login/pin', { usuarioId, pin }),
+  loginComplete: (email: string, senha: string) =>
+    api.post<AuthResponse>('/auth/login', { email, senha }),
   getUsuarios: () => api.get<Array<{ id: number; nome: string }>>('/auth/usuarios'),
+  getUsuariosFull: () => api.get<Array<Usuario>>('/auth/usuarios/full'),
+  createUsuario: (data: Partial<Usuario>) => api.post<Usuario>('/auth/usuarios', data),
+  updateUsuario: (id: number, data: Partial<Usuario>) => api.put<Usuario>(`/auth/usuarios/${id}`, data),
+  deleteUsuario: (id: number) => api.delete(`/auth/usuarios/${id}`),
+};
+
+export const dashboardAPI = {
+  getStats: () => api.get('/api/dashboard/stats'),
+  getOSByMonth: () => api.get('/api/dashboard/os-by-month'),
+  getOSvsAtendimentos: () => api.get('/api/dashboard/os-vs-atendimentos'),
+  getWeeklyAverage: () => api.get('/api/dashboard/weekly-average'),
+  getTecnicoRanking: (startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return api.get(`/api/dashboard/tecnico-ranking${params.toString() ? '?' + params.toString() : ''}`);
+  },
+  getTecnicosByEspecialidade: () => api.get('/api/dashboard/tecnicos-by-especialidade'),
+  getUpcomingEvents: () => api.get('/api/dashboard/upcoming-events'),
 };
 
 export default api;

@@ -3,6 +3,7 @@ import { ordensServicoAPI, atendimentosAPI, tecnicosAPI } from '../services/api'
 import type { OrdemServico, Tecnico, Atendimento } from '../types';
 import Spinner from './Spinner';
 import { withMinDelay } from '../utils/delay';
+import { parseEspecialidades, getAllEspecialidades, hasEspecialidade } from '../utils/especialidades';
 import './OSModal.css';
 
 interface OSModalProps {
@@ -22,10 +23,11 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
   
   // Estados para gerenciamento de equipe
   const [allTecnicos, setAllTecnicos] = useState<Tecnico[]>([]);
-  const [equipe, setEquipe] = useState<Atendimento[]>(os.atendimentos || []);
+  const [equipe, setEquipe] = useState<Atendimento[]>(os.atendimento ? [os.atendimento] : []);
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingTecnicos, setLoadingTecnicos] = useState(false);
   const [filterEspecialidade, setFilterEspecialidade] = useState<string>('todas');
+  const [conflictWarning, setConflictWarning] = useState<{ tecnico: string; conflitos: any[] } | null>(null);
   
   const [formData, setFormData] = useState({
     nomeCliente: os.nomeCliente,
@@ -61,10 +63,11 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
 
   const loadEquipe = async () => {
     try {
-      const response = await atendimentosAPI.getByOrdemServico(os.id);
-      setEquipe(response.data);
+      const response = await atendimentosAPI.getByOS(os.id);
+      setEquipe(response.data ? [response.data] : []);
     } catch (err) {
       console.error('Erro ao carregar equipe:', err);
+      setEquipe([]);
     }
   };
 
@@ -74,7 +77,7 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
       setError(null);
       
       // Verificar se já está na equipe
-      if (equipe.some(a => a.tecnicoId === tecnico.id)) {
+      if (equipe.some(a => a.tecnicos?.some(t => t.tecnicoId === tecnico.id))) {
         setError('Este técnico já está na equipe');
         return;
       }
@@ -82,14 +85,20 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
       const response = await withMinDelay(
         atendimentosAPI.create({
           ordemServicoId: os.id,
-          tecnicoId: tecnico.id,
-          status: 'pendente',
-        }),
+          status: 'nao_agendado',
+          dataAgendamento: new Date(os.data).toISOString(),
+          tecnicos: [{ tecnicoId: tecnico.id, funcao: '' }]
+        } as any),
         300 // 300ms mínimo para feedback
       );
 
-      setEquipe([...equipe, { ...response.data, tecnico }]);
+      const atendimento = response.data;
+      const novaEquipe = [...equipe, atendimento];
+      setEquipe(novaEquipe);
       setSearchTerm('');
+      
+      // Notificar componente pai para atualizar calendário
+      onUpdate?.({ ...os, atendimento: novaEquipe[0] });
     } catch (err: any) {
       setError(err.userMessage || 'Erro ao adicionar técnico');
     } finally {
@@ -107,7 +116,11 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
         300 // 300ms mínimo para feedback
       );
       
-      setEquipe(equipe.filter(a => a.id !== atendimentoId));
+      const novaEquipe = equipe.filter(a => a.id !== atendimentoId);
+      setEquipe(novaEquipe);
+      
+      // Notificar componente pai para atualizar calendário
+      onUpdate?.({ ...os, atendimento: novaEquipe[0] });
     } catch (err: any) {
       setError(err.userMessage || 'Erro ao remover técnico');
     } finally {
@@ -115,8 +128,8 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
     }
   };
 
-  // Obter lista única de especialidades
-  const especialidades = Array.from(new Set(allTecnicos.map(t => t.especialidade).filter(Boolean)));
+  // Obter lista única de especialidades (agora suporta múltiplas por técnico)
+  const especialidades = getAllEspecialidades(allTecnicos);
 
   const filteredTecnicos = (() => {
     // Se digitou @, mostra todos (sem necessidade de 3 caracteres)
@@ -128,10 +141,10 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
 
     return allTecnicos.filter(t => {
       // Não mostrar quem já está na equipe
-      if (equipe.some(a => a.tecnicoId === t.id)) return false;
+      if (equipe.some(a => a.tecnicos?.some(ta => ta.tecnicoId === t.id))) return false;
       
-      // Aplicar filtro de especialidade
-      if (filterEspecialidade !== 'todas' && t.especialidade !== filterEspecialidade) return false;
+      // Aplicar filtro de especialidade (verifica em todas as especialidades do técnico)
+      if (filterEspecialidade !== 'todas' && !hasEspecialidade(t.especialidade, filterEspecialidade)) return false;
       
       // Se é @, já passou nos filtros acima
       if (showAll && searchText.length === 0) return true;
@@ -260,7 +273,13 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
                     onClick={() => handleAddTecnico(tec)}
                   >
                     <div className="tech-name">{tec.nome}</div>
-                    <div className="tech-specialty">{tec.especialidade || 'Sem especialidade'}</div>
+                    <div className="tech-specialty">
+                      {tec.especialidade ? (
+                        parseEspecialidades(tec.especialidade).map((esp, idx) => (
+                          <span key={idx} className="especialidade-badge-inline">{esp}</span>
+                        ))
+                      ) : 'Sem especialidade'}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -268,6 +287,36 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
 
             {loadingTecnicos && (
               <Spinner size="medium" message="Carregando técnicos..." />
+            )}
+
+            {/* Aviso de conflito */}
+            {conflictWarning && (
+              <div className="conflict-warning">
+                <div className="conflict-header">
+                  <span className="warning-icon">⚠️</span>
+                  <strong>Atenção: Conflito de Agenda</strong>
+                  <button 
+                    className="close-warning"
+                    onClick={() => setConflictWarning(null)}
+                    title="Fechar aviso"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="conflict-message">
+                  O técnico <strong>{conflictWarning.tecnico}</strong> já está alocado em outras OS(s) na mesma data:
+                </p>
+                <ul className="conflict-list">
+                  {conflictWarning.conflitos.map((c, idx) => (
+                    <li key={idx}>
+                      <strong>OS #{c.osNumero}</strong> - {c.cliente}
+                    </li>
+                  ))}
+                </ul>
+                <p className="conflict-note">
+                  ℹ️ O técnico foi escalado, mas verifique a disponibilidade.
+                </p>
+              </div>
             )}
 
             {/* Current team */}
@@ -280,8 +329,16 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
                   {equipe.map(atendimento => (
                     <div key={atendimento.id} className="team-member">
                       <div className="member-info">
-                        <div className="member-name">{atendimento.tecnico?.nome || 'Nome indisponível'}</div>
-                        <div className="member-specialty">{atendimento.tecnico?.especialidade || 'Sem especialidade'}</div>
+                        <div className="member-name">
+                          {atendimento.tecnicos && atendimento.tecnicos.length > 0
+                            ? atendimento.tecnicos.map(t => t.tecnico?.nome).join(', ')
+                            : 'Nenhum técnico'}
+                        </div>
+                        <div className="member-specialty">
+                          {atendimento.tecnicos && atendimento.tecnicos.length > 0
+                            ? atendimento.tecnicos.map(t => t.tecnico?.especialidade).filter(Boolean).join(', ')
+                            : 'Sem especialidade'}
+                        </div>
                       </div>
                       <button
                         className="remove-btn"
@@ -470,11 +527,13 @@ export default function OSModal({ os, onClose, onUpdate }: OSModalProps) {
                     <div key={atend.id} className="team-member-readonly">
                       <div className="member-info">
                         <div className="member-name">
-                          {atend.tecnico?.nome || `Técnico #${atend.tecnicoId}`}
+                          {atend.tecnicos && atend.tecnicos.length > 0
+                            ? atend.tecnicos.map(t => t.tecnico?.nome || `Técnico #${t.tecnicoId}`).join(', ')
+                            : 'Nenhum técnico'}
                         </div>
-                        {atend.tecnico?.especialidade && (
+                        {atend.tecnicos && atend.tecnicos.length > 0 && atend.tecnicos.some(t => t.tecnico?.especialidade) && (
                           <div className="member-specialty-small">
-                            {atend.tecnico.especialidade}
+                            {atend.tecnicos.map(t => t.tecnico?.especialidade).filter(Boolean).join(', ')}
                           </div>
                         )}
                       </div>
