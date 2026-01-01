@@ -200,6 +200,24 @@ Contribuições são bem-vindas! Por favor:
 [Seu Email]  
 [Seu GitHub]
 
+## 📜 Licença e Propriedade
+
+Este software foi desenvolvido por **Marcos Oliveira** e é cedido integralmente, sem custo, para **Futura Eventos**.
+
+### Termos de Uso
+
+- ✅ **Cessão Total**: Todo o código-fonte, builds e documentação pertencem à Futura Eventos
+- 🔒 **Licença Intransferível**: Direitos exclusivos e não transferíveis
+- 📋 **Propriedade Intelectual**: Futura Eventos é a única detentora de todos os direitos
+- 🛠️ **Manutenção**: Futura Eventos pode solicitar alterações e atualizações a qualquer profissional
+- 👤 **Desenvolvedor Original**: Marcos Oliveira disponível para contratação facultativa
+
+**Documento completo**: Consulte [LICENSE.md](LICENSE.md) para o EULA completo com todas as cláusulas legais.
+
+**Garantia**: Software fornecido "AS-IS" sem garantias. Futura Eventos assume total responsabilidade pela operação e manutenção.
+
+---
+
 ## 🌟 Agradecimentos
 
 - Equipe de desenvolvimento
@@ -208,7 +226,7 @@ Contribuições são bem-vindas! Por favor:
 
 ---
 
-**Desenvolvido com ❤️ para simplificar a gestão de ordens de serviço**
+**Desenvolvido por Marcos Oliveira para Futura Eventos**
 
 ## 📊 Status do Projeto
 

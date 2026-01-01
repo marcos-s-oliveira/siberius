@@ -288,4 +288,28 @@ Agora você tem:
 
 ---
 
-**Desenvolvido para simplificar deploy e distribuição!** 🎯
+## 📜 Licença e Termos de Uso
+
+### Informações de Propriedade
+
+Este software foi desenvolvido por **Marcos Oliveira** e é cedido integralmente e sem custo para **Futura Eventos**.
+
+### Termos Principais
+
+- ✅ **Cessão Total**: Todo o código-fonte e builds pertencem à Futura Eventos
+- 🔒 **Intransferível**: Licença exclusiva e não transferível
+- 📋 **Propriedade Intelectual**: Futura Eventos é a detentora de todos os direitos
+- 🛠️ **Manutenção**: Futura Eventos pode solicitar alterações a quem julgar necessário
+- 👤 **Desenvolvedor Original**: Marcos Oliveira pode ser contratado facultativamente para manutenções futuras
+
+### Documento Completo
+
+Para consultar o contrato completo de licença (EULA), veja o arquivo [LICENSE.md](LICENSE.md) na raiz do projeto.
+
+### Garantias
+
+O software é fornecido "NO ESTADO EM QUE SE ENCONTRA" (AS-IS), sem garantias expressas ou implícitas. Futura Eventos assume total responsabilidade pela manutenção, segurança e conformidade legal do sistema.
+
+---
+
+**Desenvolvido por Marcos Oliveira para Futura Eventos** 🎯
