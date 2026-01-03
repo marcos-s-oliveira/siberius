@@ -6,6 +6,8 @@ export interface ParsedPDFInfo {
   nomeCliente: string;
   nomeEvento: string;
   data: Date;
+  dataMontagem?: Date;
+  horarioMontagem?: string;
   osAtualizada: boolean;
   nomeArquivo: string;
 }
@@ -72,6 +74,11 @@ export class PDFParser {
         text += pageText + '\n';
       }
       
+      // Rejeitar documentos que NÃO são OS
+      if (this.isNonOSDocument(text, filename)) {
+        throw new Error('PDF descartado: Documento identificado como não-OS (financeiro/administrativo)');
+      }
+      
       // Validar OS
       const isValidOS = this.hasValidOSPattern(text);
       
@@ -91,6 +98,54 @@ export class PDFParser {
       }
       throw new Error(`Erro ao validar ${filename}: ${String(error)}`);
     }
+  }
+
+  /**
+   * Verifica se o PDF é um documento NÃO-OS (movimento de caixa, nota fiscal, etc)
+   * 
+   * @param text Texto extraído do PDF
+   * @param filename Nome do arquivo
+   * @returns true se é documento não-OS, false se pode ser OS
+   */
+  private static isNonOSDocument(text: string, filename: string): boolean {
+    const normalizedText = text.toLowerCase();
+    const normalizedFilename = filename.toLowerCase();
+    
+    // Lista de palavras-chave que indicam documentos NÃO-OS
+    const nonOSKeywords = [
+      'movimento de caixa',
+      'movimentação de caixa',
+      'fluxo de caixa',
+      'nota fiscal',
+      'recibo',
+      'boleto',
+      'fatura',
+      'extrato bancário',
+      'extrato de conta',
+      'comprovante de pagamento',
+      'demonstrativo financeiro',
+      'balancete',
+      'relatório financeiro',
+      'prestação de contas'
+    ];
+    
+    // Verificar no conteúdo
+    for (const keyword of nonOSKeywords) {
+      if (normalizedText.includes(keyword)) {
+        console.warn(`    ⚠️  Detectado documento não-OS: "${keyword}" no conteúdo`);
+        return true;
+      }
+    }
+    
+    // Verificar no nome do arquivo
+    for (const keyword of nonOSKeywords) {
+      if (normalizedFilename.includes(keyword)) {
+        console.warn(`    ⚠️  Detectado documento não-OS: "${keyword}" no nome do arquivo`);
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   /**
@@ -146,6 +201,7 @@ export class PDFParser {
   /**
    * Verifica se o PDF tem o padrão de uma Ordem de Serviço válida
    * Uma OS válida deve ter "Orçamento: [número]" seguido de "Campo Grande"
+   * e OBRIGATORIAMENTE deve conter "Data(s) do evento: DD/MM/YYYY"
    * e NÃO deve ser um documento de orçamento
    * 
    * @param text Texto extraído do PDF
@@ -159,7 +215,18 @@ export class PDFParser {
     
     // Verificar o padrão principal de OS: "Orçamento: [número] ... Campo Grande"
     const osPattern = /Orçamento:\s*\d+.*?Campo\s+Grande/is;
-    return osPattern.test(text);
+    if (!osPattern.test(text)) {
+      return false;
+    }
+    
+    // OBRIGATÓRIO: Verificar se contém "Data(s) do evento: DD/MM/YYYY"
+    const dataEventoPattern = /Data\(s\)\s+do\s+evento:\s*\d{2}\/\d{2}\/\d{4}/is;
+    if (!dataEventoPattern.test(text)) {
+      console.warn('    ⚠️  PDF rejeitado: não contém "Data(s) do evento: DD/MM/YYYY"');
+      return false;
+    }
+    
+    return true;
   }
 
   /**
@@ -308,7 +375,61 @@ export class PDFParser {
       warnings.push('Data do evento não encontrada no formato esperado');
     }
     
-    // 5. VERIFICAR SE É OS ATUALIZADA
+    // 5. DATA DA MONTAGEM (OPCIONAL)
+    let dataMontagem: Date | null = null;
+    // Tentar múltiplos padrões
+    const dataMontagemPatterns = [
+      /Data\(s\)\s+da\s+montagem:\s*(.+?)\s*Horário\s+da\s+montagem:/is,
+      /Data\(s\)\s*da\s*montagem:\s*(.+?)\s*Horário/is,
+      /Data.*montagem.*?(\d{2}\/\d{2}\/\d{4})/is,
+    ];
+    
+    for (const pattern of dataMontagemPatterns) {
+      const dataMontagemMatch = cleanText.match(pattern);
+      if (dataMontagemMatch && dataMontagemMatch[1]?.trim()) {
+        const dataMontagemStr = dataMontagemMatch[1].trim();
+        const datePattern = /(\d{2}\/\d{2}\/\d{4})/;
+        const dateExtract = dataMontagemStr.match(datePattern);
+        
+        if (dateExtract) {
+          try {
+            dataMontagem = this.parseDateBR(dateExtract[1]);
+            score += 5; // Data de montagem válida = 5 pontos bonus
+            console.log(`    ✅ Data de montagem encontrada: ${dateExtract[1]}`);
+            break;
+          } catch (error) {
+            warnings.push(`Erro ao converter data de montagem: ${dateExtract[1]}`);
+          }
+        }
+      }
+    }
+    
+    // 6. HORÁRIO DA MONTAGEM (OPCIONAL)
+    let horarioMontagem: string | null = null;
+    const horarioMontagemPatterns = [
+      /Horário\s+da\s+montagem:\s*(\d{1,2}:\d{2})/is,
+      /Horário\s*da\s*montagem:\s*(\d{1,2}:\d{2})/is,
+      /horário\s+da\s+montagem:\s*(\d{1,2}:\d{2})/is,
+    ];
+    
+    for (const pattern of horarioMontagemPatterns) {
+      const horarioMontagemMatch = cleanText.match(pattern);
+      if (horarioMontagemMatch && horarioMontagemMatch[1]?.trim()) {
+        horarioMontagem = horarioMontagemMatch[1].trim();
+        
+        // Validar formato HH:mm
+        if (/^\d{1,2}:\d{2}$/.test(horarioMontagem)) {
+          score += 5; // Horário de montagem válido = 5 pontos bonus
+          console.log(`    ✅ Horário de montagem encontrado: ${horarioMontagem}`);
+          break;
+        } else {
+          warnings.push(`Horário de montagem em formato inválido: ${horarioMontagem}`);
+          horarioMontagem = null;
+        }
+      }
+    }
+    
+    // 7. VERIFICAR SE É OS ATUALIZADA
     const osAtualizada = /atualizada|revisão|versão\s*\d+|rev\s*\d+/i.test(cleanText);
     
     // REGRAS DE VALIDAÇÃO:
@@ -352,6 +473,8 @@ export class PDFParser {
         nomeCliente: nomeCliente || 'N/A',
         nomeEvento: nomeEvento || 'N/A',
         data: data || new Date(),
+        dataMontagem: dataMontagem ?? undefined,
+        horarioMontagem: horarioMontagem ?? undefined,
         osAtualizada,
       }
     };
@@ -436,15 +559,14 @@ export class PDFParser {
       };
     }
     
-    // Se apenas o nome do arquivo é válido
+    // Se apenas o nome do arquivo é válido mas conteúdo falhou = REJEITAR
     if (!contentResult.isValid && filenameResult.isValid) {
-      warnings.push('Conteúdo do PDF não passou na validação, usando dados do nome do arquivo');
-      console.warn(`⚠️  ${filename}: ${warnings[0]}`);
-      
-      return {
-        ...filenameResult.data!,
-        nomeArquivo: filename,
-      };
+      errors.push(
+        'VALIDAÇÃO CRÍTICA FALHOU: Conteúdo do PDF não é uma OS válida.\n' +
+        'O arquivo não pode ser indexado apenas pelo nome.\n' +
+        'Motivos: ' + contentResult.errors.join('; ')
+      );
+      throw new Error(errors.join('\n'));
     }
     
     // Ambos são válidos - fazer validação cruzada e combinar
@@ -495,6 +617,8 @@ export class PDFParser {
       data: contentData.data.getFullYear() !== 1990 
         ? contentData.data 
         : (filenameData.data.getFullYear() !== 1900 ? filenameData.data : contentData.data),
+      dataMontagem: contentData.dataMontagem,
+      horarioMontagem: contentData.horarioMontagem,
       osAtualizada: contentData.osAtualizada || filenameData.osAtualizada,
       nomeArquivo: filename,
     };

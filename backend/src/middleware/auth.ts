@@ -8,8 +8,9 @@ export interface AuthRequest extends Request {
     userId: number;
     email: string;
     nome: string;
-    authType?: 'full' | 'pin';
+    authType?: 'full' | 'pin' | 'mobile';
   };
+  tecnicoId?: number;
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -96,5 +97,49 @@ export const optionalAuthMiddleware = (req: AuthRequest, res: Response, next: Ne
     next();
   } catch (error) {
     next();
+  }
+};
+
+// Middleware para autenticação mobile (técnicos)
+export const mobileAuthMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Token não fornecido' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      
+      if (decoded.authType !== 'mobile') {
+        return res.status(403).json({ 
+          error: 'Acesso negado',
+          message: 'Este endpoint é apenas para aplicativo mobile'
+        });
+      }
+
+      if (!decoded.tecnicoId) {
+        return res.status(403).json({ 
+          error: 'Token inválido',
+          message: 'Token não contém dados de técnico'
+        });
+      }
+
+      req.user = {
+        userId: decoded.userId,
+        email: decoded.email,
+        nome: decoded.nome,
+        authType: decoded.authType
+      };
+      req.tecnicoId = decoded.tecnicoId;
+      next();
+    } catch (err) {
+      return res.status(401).json({ error: 'Token inválido ou expirado' });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro na autenticação' });
   }
 };

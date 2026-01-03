@@ -30,6 +30,8 @@ model Tecnico {
   telefone     String?
   especialidade String?
   ativo        Boolean  @default(true)
+  usuarioId    Int?     @unique  // ID do usuário criado para acesso mobile
+  mobileToken  String?  @unique  // Token único para autenticação mobile via QR Code
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
@@ -45,6 +47,8 @@ model OrdemServico {
   nomeCliente     String
   nomeEvento      String
   data            DateTime
+  dataMontagem    DateTime? // Data(s) da montagem extraída do PDF
+  horarioMontagem String?   // Horário da montagem (HH:mm)
   osAtualizada    Boolean  @default(false)
   caminhoArquivo  String   @unique
   caminhoRelativo String?
@@ -66,13 +70,14 @@ model OrdemServico {
 }
 
 model Atendimento {
-  id              Int      @id @default(autoincrement())
-  ordemServicoId  Int      @unique
-  dataAgendamento DateTime
-  status          String   @default("nao_agendado") // nao_agendado, agendado, em_andamento, concluido, cancelado
-  observacoes     String?
-  criadoEm        DateTime @default(now())
-  atualizadoEm    DateTime @updatedAt
+  id               Int       @id @default(autoincrement())
+  ordemServicoId   Int       @unique
+  dataAgendamento  DateTime
+  dataFinalizacao  DateTime? // Quando foi finalizado
+  status           String    @default("nao_agendado") // nao_agendado, agendado, em_andamento, concluido, cancelado
+  observacoes      String?
+  criadoEm         DateTime  @default(now())
+  atualizadoEm     DateTime  @updatedAt
 
   ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
   tecnicos     TecnicoAtendimento[]

@@ -143,10 +143,13 @@ export class OrdemServicoController {
         numeroOS, 
         nomeCliente, 
         nomeEvento, 
-        data, 
+        data,
+        dataMontagem,
+        horarioMontagem,
         osAtualizada, 
         caminhoArquivo, 
-        nomeArquivo 
+        nomeArquivo,
+        ativa
       } = req.body;
 
       const updateData: any = {};
@@ -154,9 +157,12 @@ export class OrdemServicoController {
       if (nomeCliente !== undefined) updateData.nomeCliente = nomeCliente;
       if (nomeEvento !== undefined) updateData.nomeEvento = nomeEvento;
       if (data !== undefined) updateData.data = new Date(data);
+      if (dataMontagem !== undefined) updateData.dataMontagem = dataMontagem ? new Date(dataMontagem) : null;
+      if (horarioMontagem !== undefined) updateData.horarioMontagem = horarioMontagem || null;
       if (osAtualizada !== undefined) updateData.osAtualizada = osAtualizada;
       if (caminhoArquivo !== undefined) updateData.caminhoArquivo = caminhoArquivo;
       if (nomeArquivo !== undefined) updateData.nomeArquivo = nomeArquivo;
+      if (ativa !== undefined) updateData.ativa = ativa;
 
       const ordemServico = await prisma.ordemServico.update({
         where: { id: parseInt(id) },

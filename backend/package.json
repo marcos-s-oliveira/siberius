@@ -6,13 +6,19 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:server": "tsx watch src/server.ts",
+    "dev:api": "tsx watch src/api-only.ts",
+    "dev:indexer": "tsx watch src/indexer-only.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "start:server": "node dist/server.js",
+    "start:api": "node dist/api-only.js",
+    "start:indexer": "node dist/indexer-only.js",
+    "scan": "tsx src/scan-once.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "db:clean": "tsx dbClean.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

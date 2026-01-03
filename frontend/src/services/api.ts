@@ -101,6 +101,7 @@ export const tecnicosAPI = {
   create: (data: Partial<Tecnico>) => api.post<Tecnico>('/api/tecnicos', data),
   update: (id: number, data: Partial<Tecnico>) => api.put<Tecnico>(`/api/tecnicos/${id}`, data),
   delete: (id: number) => api.delete(`/api/tecnicos/${id}`),
+  generateMobileToken: (id: number) => api.post<{ qrData: string; message: string }>(`/api/tecnicos/${id}/generate-token`),
 };
 
 export const authAPI = {

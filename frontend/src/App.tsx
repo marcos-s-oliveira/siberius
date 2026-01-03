@@ -113,7 +113,8 @@ function App() {
             console.log(`✅ Processando ${count} notificações - adicionando sem reload`);
             
             for (const notifData of pendingNotifications) {
-              ttsService.speak(notifData.message);
+              const ttsMessage = `Nova ordem de serviço para ${notifData.dataFormatted}`;
+              ttsService.speak(ttsMessage);
               
               const notification: NotificationData = {
                 id: `${notifData.numeroOS}-${Date.now()}`,

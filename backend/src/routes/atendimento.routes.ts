@@ -1,8 +1,17 @@
 import { Router } from 'express';
 import { AtendimentoController } from '../controllers/AtendimentoController';
+import { SocketManager } from '../socket/SocketManager';
 
 const router = Router();
 const controller = new AtendimentoController();
+
+// Função para configurar o socket manager
+export function setupAtendimentoRoutes(socketManager: SocketManager | null): Router {
+  if (socketManager) {
+    controller.setSocketManager(socketManager);
+  }
+  return router;
+}
 
 // Rotas principais
 router.get('/atendimentos', (req, res) => controller.list(req, res));

@@ -9,6 +9,9 @@ router.post('/login', AuthController.loginComplete);
 // Login rápido com PIN para tela touch
 router.post('/login/pin', AuthController.loginPin);
 
+// Login mobile via token do QR Code
+router.post('/login/mobile', AuthController.loginMobile);
+
 // Listar usuários para seleção (apenas nome e id)
 router.get('/usuarios', AuthController.listForSelection);
 

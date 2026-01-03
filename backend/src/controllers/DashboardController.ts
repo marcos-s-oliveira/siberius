@@ -33,8 +33,8 @@ export class DashboardController {
    */
   static async getOSByMonth(req: Request, res: Response) {
     try {
-      const twelveMonthsAgo = new Date();
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const now = new Date();
+      const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
       const orders = await prisma.ordemServico.findMany({
         where: {
@@ -71,9 +71,10 @@ export class DashboardController {
         groupedByMonth[sortKey].count++;
       });
 
-      // Converter para array e ordenar por chave (YYYY-MM)
+      // Converter para array, ordenar por chave (YYYY-MM) e limitar aos últimos 12 meses
       const result = Object.values(groupedByMonth)
         .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+        .slice(-12)
         .map(({ month, count }) => ({ month, count }));
 
       res.json(result);

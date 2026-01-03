@@ -16,6 +16,10 @@ function OrdemServicoForm({ ordemServico, onSave, onCancel }: OrdemServicoFormPr
     nomeCliente: ordemServico?.nomeCliente || '',
     nomeEvento: ordemServico?.nomeEvento || '',
     data: ordemServico?.data ? ordemServico.data.split('T')[0] : '',
+    dataMontagem: ordemServico?.dataMontagem ? ordemServico.dataMontagem.split('T')[0] : '',
+    horarioMontagem: ordemServico?.horarioMontagem || '',
+    caminhoArquivo: ordemServico?.caminhoArquivo || '',
+    nomeArquivo: ordemServico?.nomeArquivo || '',
     ativa: ordemServico?.ativa ?? true,
     osAtualizada: ordemServico?.osAtualizada ?? false,
   });
@@ -122,6 +126,57 @@ function OrdemServicoForm({ ordemServico, onSave, onCancel }: OrdemServicoFormPr
             value={formData.data}
             onChange={handleChange}
             required
+          />
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="dataMontagem">Data da Montagem</label>
+            <input
+              type="date"
+              id="dataMontagem"
+              name="dataMontagem"
+              value={formData.dataMontagem}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="horarioMontagem">Horário da Montagem</label>
+            <input
+              type="time"
+              id="horarioMontagem"
+              name="horarioMontagem"
+              value={formData.horarioMontagem}
+              onChange={handleChange}
+              placeholder="HH:mm"
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="caminhoArquivo">Caminho do Arquivo</label>
+          <input
+            type="text"
+            id="caminhoArquivo"
+            name="caminhoArquivo"
+            value={formData.caminhoArquivo}
+            onChange={handleChange}
+            disabled
+            style={{ backgroundColor: '#f5f5f5' }}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="nomeArquivo">Nome do Arquivo</label>
+          <input
+            type="text"
+            id="nomeArquivo"
+            name="nomeArquivo"
+            value={formData.nomeArquivo}
+            onChange={handleChange}
+            disabled
+            style={{ backgroundColor: '#f5f5f5' }}
           />
         </div>
 

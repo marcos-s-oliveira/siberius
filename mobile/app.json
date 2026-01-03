@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Siberius Técnico",
+    "slug": "siberius-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.siberius.mobile"
+    },
+    "android": {
+      "package": "com.siberius.mobile",
+      "permissions": [
+        "CAMERA",
+        "NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir que $(PRODUCT_NAME) acesse sua câmera para escanear QR codes.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/[your-project-id]"
+    }
+  }
+}

@@ -77,6 +77,16 @@ export class PDFIndexer {
   }
 
   /**
+   * Executa um scan único (sem repetição)
+   * Útil para execução manual ou via cron job
+   */
+  public async scanOnce(): Promise<void> {
+    logger.log('🔍 Executando scan único...');
+    await this.scanAndIndex();
+    logger.log('✅ Scan único concluído');
+  }
+
+  /**
    * Escaneia o diretório e indexa novos arquivos
    */
   private async scanAndIndex(): Promise<void> {
@@ -299,6 +309,10 @@ export class PDFIndexer {
 
     // Salvar no banco de dados
     try {
+      // Log para debug
+      logger.log(`📅 Data Montagem: ${parsedInfo.dataMontagem ? parsedInfo.dataMontagem.toLocaleDateString('pt-BR') : 'Não encontrada'}`);
+      logger.log(`⏰ Horário Montagem: ${parsedInfo.horarioMontagem || 'Não encontrado'}`);
+      
       const newOS = await this.prisma.ordemServico.create({
         data: {
           numeroOS: parsedInfo.numeroOS,
@@ -306,6 +320,8 @@ export class PDFIndexer {
           nomeCliente: parsedInfo.nomeCliente,
           nomeEvento: parsedInfo.nomeEvento,
           data: parsedInfo.data,
+          dataMontagem: parsedInfo.dataMontagem,
+          horarioMontagem: parsedInfo.horarioMontagem,
           osAtualizada: parsedInfo.osAtualizada,
           caminhoArquivo: file.filepath,
           caminhoRelativo: caminhoRelativo,

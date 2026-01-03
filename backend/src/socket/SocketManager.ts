@@ -53,6 +53,35 @@ export class SocketManager {
   }
 
   /**
+   * Emite notificação de ordem designada a um técnico específico
+   */
+  public notifyNewOrdemDesignada(data: { 
+    atendimentoId: number;
+    numeroOS: string; 
+    cliente: string; 
+    dataAgendamento: Date;
+    tecnicoId: number;
+  }): void {
+    const dateFormatted = data.dataAgendamento.toLocaleDateString('pt-BR', { 
+      day: '2-digit', 
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    this.io.emit('nova-ordem-designada', {
+      atendimentoId: data.atendimentoId,
+      numeroOS: data.numeroOS,
+      cliente: data.cliente,
+      dataAgendamento: dateFormatted,
+      tecnicoId: data.tecnicoId
+    });
+
+    logger.log(`📱 Notificação mobile enviada: OS #${data.numeroOS} designada ao técnico ${data.tecnicoId}`);
+  }
+
+  /**
    * Notifica início da sincronização de arquivos
    */
   public notifySyncStarted(totalFiles?: number): void {

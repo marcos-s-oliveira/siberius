@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import { tecnicosAPI } from '../services/api';
 import type { Tecnico } from '../types';
 import TecnicoForm from './TecnicoForm';
+import Modal from './Modal';
+import ConfirmModal from './ConfirmModal';
+import AlertModal from './AlertModal';
 import { parseEspecialidades } from '../utils/especialidades';
 import { useSortableTable } from '../hooks/useSortableTable';
 import { usePagination } from '../hooks/usePagination';
 import Pagination from './Pagination';
 import Spinner from './Spinner';
+import QRCode from 'qrcode';
 
 function TecnicoList() {
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
@@ -15,10 +19,43 @@ function TecnicoList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingTecnico, setEditingTecnico] = useState<Tecnico | null>(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrData, setQrData] = useState<string>('');
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [qrTecnicoNome, setQrTecnicoNome] = useState<string>('');
+  const [generatingQR, setGeneratingQR] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState({ title: '', message: '', type: 'info' as 'info' | 'success' | 'warning' | 'error' });
+  const [selectedTecnico, setSelectedTecnico] = useState<Tecnico | null>(null);
 
   useEffect(() => {
     loadTecnicos();
   }, []);
+
+  // Gerar QR code quando os dados mudarem
+  useEffect(() => {
+    if (qrData) {
+      generateQRCode(qrData);
+    }
+  }, [qrData]);
+
+  const generateQRCode = async (data: string) => {
+    try {
+      const url = await QRCode.toDataURL(data, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      setQrCodeUrl(url);
+    } catch (err) {
+      console.error('Erro ao gerar QR code:', err);
+    }
+  };
 
   const loadTecnicos = async () => {
     try {
@@ -48,15 +85,58 @@ function TecnicoList() {
     handleCloseForm();
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Deseja realmente excluir este técnico?')) return;
+  const handleDelete = (tecnico: Tecnico) => {
+    setSelectedTecnico(tecnico);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedTecnico) return;
     
     try {
-      await tecnicosAPI.delete(id);
+      await tecnicosAPI.delete(selectedTecnico.id);
       loadTecnicos();
     } catch (err: any) {
-      alert(err.userMessage || 'Erro ao excluir técnico');
+      setAlertMessage({
+        title: 'Erro',
+        message: err.userMessage || 'Erro ao excluir técnico',
+        type: 'error'
+      });
+      setShowAlert(true);
     }
+  };
+
+  const handleGenerateQR = async (tecnico: Tecnico) => {
+    setSelectedTecnico(tecnico);
+    setShowGenerateConfirm(true);
+  };
+
+  const confirmGenerateQR = async () => {
+    if (!selectedTecnico) return;
+    
+    try {
+      setGeneratingQR(true);
+      const response = await tecnicosAPI.generateMobileToken(selectedTecnico.id);
+      setQrData(response.data.qrData);
+      setQrTecnicoNome(selectedTecnico.nome);
+      setShowQRModal(true);
+    } catch (err: any) {
+      setAlertMessage({
+        title: 'Erro',
+        message: err.userMessage || 'Erro ao gerar token mobile',
+        type: 'error'
+      });
+      setShowAlert(true);
+    } finally {
+      setGeneratingQR(false);
+    }
+  };
+
+  const handleCloseQRModal = () => {
+    setShowQRModal(false);
+    setQrData('');
+    setQrCodeUrl('');
+    setQrTecnicoNome('');
   };
 
   const filteredTecnicos = tecnicos.filter(tec =>
@@ -185,8 +265,16 @@ function TecnicoList() {
                         ✏️
                       </button>
                       <button
+                        className="btn-icon"
+                        onClick={() => handleGenerateQR(tecnico)}
+                        title="Gerar QR Code para App Mobile"
+                        disabled={generatingQR}
+                      >
+                        📱
+                      </button>
+                      <button
                         className="btn-icon delete"
-                        onClick={() => handleDelete(tecnico.id)}
+                        onClick={() => handleDelete(tecnico)}
                         title="Excluir"
                       >
                         🗑️
@@ -210,6 +298,87 @@ function TecnicoList() {
           />
         </div>
       )}
+
+      {/* Modal de QR Code */}
+      <Modal
+        isOpen={showQRModal}
+        onClose={handleCloseQRModal}
+        title={`QR Code - ${qrTecnicoNome}`}
+        size="medium"
+      >
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <p style={{ marginBottom: '20px', color: '#666' }}>
+            Escaneie este QR Code com o aplicativo mobile do técnico
+          </p>
+          
+          {qrCodeUrl ? (
+            <div style={{ 
+              display: 'inline-block', 
+              padding: '20px', 
+              background: 'white',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <img
+                src={qrCodeUrl}
+                alt="QR Code para acesso mobile"
+                style={{ display: 'block', width: '300px', height: '300px' }}
+              />
+            </div>
+          ) : (
+            <div style={{ padding: '40px' }}>
+              <Spinner size="large" message="Gerando QR Code..." />
+            </div>
+          )}
+          
+          <p style={{ marginTop: '20px', fontSize: '14px', color: '#999' }}>
+            Este QR Code é válido até ser gerado um novo token para este técnico
+          </p>
+          
+          <div style={{ marginTop: '20px' }}>
+            <button 
+              className="btn-primary" 
+              onClick={handleCloseQRModal}
+              style={{ minWidth: '150px' }}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Confirmação - Deletar - NUNCA USE window.confirm()! */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Confirmar Exclusão"
+        message={`Deseja realmente excluir o técnico ${selectedTecnico?.nome}?`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        confirmStyle="danger"
+      />
+
+      {/* Modal de Confirmação - Gerar Token - NUNCA USE window.confirm()! */}
+      <ConfirmModal
+        isOpen={showGenerateConfirm}
+        onClose={() => setShowGenerateConfirm(false)}
+        onConfirm={confirmGenerateQR}
+        title="Gerar Token Mobile"
+        message={`Deseja gerar um novo token mobile para ${selectedTecnico?.nome}? Isso criará um novo QR Code para acesso ao aplicativo.`}
+        confirmText="Gerar Token"
+        cancelText="Cancelar"
+        confirmStyle="primary"
+      />
+
+      {/* Modal de Alerta - NUNCA USE window.alert()! */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={() => setShowAlert(false)}
+        title={alertMessage.title}
+        message={alertMessage.message}
+        type={alertMessage.type}
+      />
     </div>
   );
 }

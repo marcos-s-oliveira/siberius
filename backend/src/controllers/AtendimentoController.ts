@@ -1,9 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
+import { SocketManager } from '../socket/SocketManager';
 
 const prisma = new PrismaClient();
 
 export class AtendimentoController {
+  private socketManager: SocketManager | null = null;
+
+  setSocketManager(socketManager: SocketManager) {
+    this.socketManager = socketManager;
+  }
+
   /**
    * Listar todos os atendimentos com informações da OS e técnicos
    */
@@ -163,6 +170,19 @@ export class AtendimentoController {
           }
         }
       });
+
+      // Notificar técnicos via Socket.IO
+      if (this.socketManager) {
+        for (const tecnicoAtendimento of atendimento.tecnicos) {
+          this.socketManager.notifyNewOrdemDesignada({
+            atendimentoId: atendimento.id,
+            numeroOS: os.numeroOS,
+            cliente: os.nomeCliente,
+            dataAgendamento: atendimento.dataAgendamento,
+            tecnicoId: tecnicoAtendimento.tecnicoId
+          });
+        }
+      }
 
       res.status(201).json(atendimento);
     } catch (error) {

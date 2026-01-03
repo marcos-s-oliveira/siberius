@@ -376,4 +376,93 @@ export class AuthController {
       res.status(500).json({ error: 'Erro ao deletar usuário' });
     }
   }
+
+  // POST - Autenticação mobile via token do QR Code
+  static async loginMobile(req: Request, res: Response) {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ error: 'Token é obrigatório' });
+      }
+
+      // Buscar técnico pelo token mobile
+      const tecnico = await prisma.tecnico.findUnique({
+        where: { mobileToken: token },
+        include: {
+          alocacoes: {
+            where: {
+              atendimento: {
+                status: {
+                  notIn: ['concluido', 'cancelado']
+                }
+              }
+            },
+            take: 1 // Apenas para contar se tem OS pendentes
+          }
+        }
+      });
+
+      if (!tecnico) {
+        return res.status(401).json({ error: 'Token inválido' });
+      }
+
+      if (!tecnico.ativo) {
+        return res.status(403).json({ error: 'Técnico inativo' });
+      }
+
+      if (!tecnico.usuarioId) {
+        return res.status(400).json({ error: 'Usuário não configurado para este técnico' });
+      }
+
+      // Buscar dados do usuário
+      const usuario = await prisma.usuario.findUnique({
+        where: { id: tecnico.usuarioId },
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          ativo: true
+        }
+      });
+
+      if (!usuario || !usuario.ativo) {
+        return res.status(403).json({ error: 'Usuário inválido ou inativo' });
+      }
+
+      // Gerar token JWT para o técnico
+      const jwtToken = jwt.sign(
+        {
+          userId: usuario.id,
+          tecnicoId: tecnico.id,
+          email: usuario.email,
+          nome: usuario.nome,
+          authType: 'mobile'
+        },
+        JWT_SECRET,
+        { expiresIn: '30d' } // Token mobile válido por 30 dias
+      );
+
+      res.json({
+        token: jwtToken,
+        tecnico: {
+          id: tecnico.id,
+          nome: tecnico.nome,
+          email: tecnico.email,
+          telefone: tecnico.telefone,
+          especialidade: tecnico.especialidade
+        },
+        usuario: {
+          id: usuario.id,
+          nome: usuario.nome,
+          email: usuario.email
+        },
+        authType: 'mobile',
+        expiresIn: '30d'
+      });
+    } catch (error) {
+      console.error('Erro ao fazer login mobile:', error);
+      res.status(500).json({ error: 'Erro ao fazer login mobile', details: error });
+    }
+  }
 }

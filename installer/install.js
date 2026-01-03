@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
 const readline = require('readline');
 
 // Configuração do repositório GitHub
-const GITHUB_REPO = 'https://github.com/seu-usuario/siberius.git'; // TODO: Atualizar com seu repositório
+const GITHUB_REPO = 'https://github.com/marcos-s-oliveira/siberius.git'; // TODO: Atualizar com seu repositório
 const INSTALL_DIR = process.cwd();
 
 const rl = readline.createInterface({
